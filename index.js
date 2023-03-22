@@ -46,6 +46,17 @@ async function run() {
         res.status(500).json(err);
       }
     });
+
+    // get user by email
+    app.get("/users/email/:email", async (req, res) => {
+      try {
+        const query = { email: req.params.email };
+        const user = await userCollection.findOne(query);
+        res.status(200).json(user);
+      } catch (err) {
+        res.status(500).json(err);
+      }
+    });
   } finally {
   }
 }
