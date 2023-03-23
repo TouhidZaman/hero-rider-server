@@ -39,9 +39,64 @@ async function run() {
 
     // get all users
     app.get("/users", async (req, res) => {
+      let query = {};
+      let ageRangeQuery = {};
+      let searchQuery = {};
+
+      const limit = +req.query.limit;
+      const page = +req.query.page;
+      const search = req.query.search;
+      const ageBetween = req.query.ageBetween;
+
+      //Forming search query
+      if (search) {
+        searchQuery = {
+          $or: [
+            {
+              displayName: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              email: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+            {
+              phoneNumber: {
+                $regex: search,
+                $options: "i",
+              },
+            },
+          ],
+        };
+      }
+
+      //Adding range query
+      if (ageBetween !== "") {
+        const splittedAge = ageBetween.split("-");
+        const startAge = +splittedAge[0];
+        const endAge = +splittedAge[1];
+        ageRangeQuery = {
+          age: { $gte: startAge, $lte: endAge },
+        };
+      }
+
+      //combining filter queries
+      query = {
+        $and: [searchQuery, ageRangeQuery],
+      };
+
       try {
-        const users = await userCollection.find({}).toArray();
-        res.status(200).json(users);
+        const count = await userCollection.estimatedDocumentCount();
+        const users = await userCollection
+          .find(query)
+          .skip(page * limit)
+          .limit(limit)
+          .toArray();
+        res.status(200).json({ count, users });
       } catch (err) {
         res.status(500).json(err);
       }
